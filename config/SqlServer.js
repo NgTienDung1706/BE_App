@@ -1,36 +1,34 @@
-const sql = require('mssql');
-require('dotenv').config();  // Để sử dụng biến môi trường từ file .env
+const { Sequelize } = require('sequelize');
+require('dotenv').config(); // Đọc biến môi trường từ .env
 
-// Cấu hình kết nối
-const config = {
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    server: process.env.DB_SERVER,
-    database: process.env.DB_DATABASE,
-    driver: process.env.DB_DRIVER,
-    port: parseInt(process.env.DB_PORT, 10),  // Chuyển đổi từ chuỗi sang số
-    options: {
-        encrypt: false,  // Nếu bạn sử dụng SSL để kết nối
-        enableArithAbort: false,
+// Tạo kết nối Sequelize
+const sequelize = new Sequelize(process.env.DB_DATABASE, process.env.DB_USER, process.env.DB_PASSWORD, {
+    host: process.env.DB_SERVER,
+    dialect: 'mssql',
+    port: parseInt(process.env.DB_PORT, 10),
+    dialectOptions: {
+        options: {
+            encrypt: false, // Nếu có SSL thì bật true
+            enableArithAbort: true,
+        },
     },
-    connectionTimeout: 300000,
-    requestTimeout: 300000,
     pool: {
-        idleTimeoutMillis: 300000,
         max: 100,
+        idle: 300000,
     },
-};
-
-const pool = new sql.ConnectionPool(config);
-const poolConnect = pool.connect(); // Quản lý kết nối
-
-// Kiểm tra kết nối
-pool.on('error', err => {
-    console.error('SQL Pool Error:', err);
+    logging: false, // Tắt log query trong console
 });
 
-module.exports = {
-    sql,          // Để sử dụng các phương thức của mssql
-    pool,         // Đối tượng pool để gửi query
-    poolConnect,  // Promise đảm bảo kết nối
+// Kiểm tra kết nối
+const testConnection = async () => {
+    try {
+        await sequelize.authenticate();
+        console.log('✅ Kết nối SQL Server thành công!');
+    } catch (error) {
+        console.error('❌ Kết nối thất bại:', error);
+    }
 };
+
+testConnection();
+
+module.exports = sequelize;
